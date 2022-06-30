@@ -274,18 +274,7 @@ class Dub {
 	private void init(NativePath root_path)
 	{
 		import std.file : tempDir;
-		version(Windows) {
-			m_dirs.systemSettings = NativePath(environment.get("ProgramData")) ~ "dub/";
-			immutable appDataDir = environment.get("APPDATA");
-			m_dirs.userSettings = NativePath(appDataDir) ~ "dub/";
-			m_dirs.localRepository = NativePath(environment.get("LOCALAPPDATA", appDataDir)) ~ "dub";
-		} else version(Posix){
-			m_dirs.systemSettings = NativePath("/var/lib/dub/");
-			m_dirs.userSettings = NativePath(environment.get("HOME")) ~ ".dub/";
-			if (!m_dirs.userSettings.absolute)
-				m_dirs.userSettings = NativePath(getcwd()) ~ m_dirs.userSettings;
-			m_dirs.localRepository = m_dirs.userSettings;
-		}
+		determineStorageDirs();
 
 		m_dirs.temp = NativePath(tempDir);
 
@@ -1339,6 +1328,46 @@ class Dub {
 		m_packageManager.searchPath = paths;
 	}
 
+	private void determineStorageDirs()
+	{
+		m_dirs.systemSettings = getSystemSettingsPath();
+		m_dirs.userSettings = getUserSettingsPath();
+		m_dirs.localRepository = getLocalRepositoryPath();
+	}
+
+	private NativePath getSystemSettingsPath()
+	{
+		if (immutable systemSettings = environment.get("DUB_SYSTEM_SETTINGS_PATH"))
+			return NativePath(systemSettings);
+		else version(Windows)
+			return NativePath(environment.get("ProgramData")) ~ "dub/";
+		else version(Posix)
+			return NativePath("/var/lib/dub/");
+	}
+
+	private NativePath getUserSettingsPath()
+	{
+		if (immutable userSettings = environment.get("DUB_USER_SETTINGS_PATH"))
+			return NativePath(userSettings);
+		else version(Windows)
+			return NativePath(environment.get("APPDATA")) ~ "dub/";
+		else version(Posix) {
+			auto userSettings = NativePath(environment.get("HOME")) ~ ".dub/";
+			if (!userSettings.absolute)
+				userSettings = NativePath(getcwd()) ~ userSettings;
+			return userSettings;
+		}
+	}
+
+	private NativePath getLocalRepositoryPath()
+	{
+		if (immutable localRepository = environment.get("DUB_LOCAL_REPOSITORY_PATH"))
+			return NativePath(localRepository);
+		else version(Windows)
+			return NativePath(environment.get("LOCALAPPDATA", environment.get("APPDATA"))) ~ "dub";
+		else version(Posix)
+			return m_dirs.userSettings;
+	}
 	private void determineDefaultCompiler()
 	{
 		import std.file : thisExePath;
