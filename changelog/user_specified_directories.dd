@@ -1,0 +1,7 @@
+Locations of certain directories can be controlled with environment variables
+
+System Settings, User Settings and Local Repository can be relocated by setting
+`DUB_SYSTEM_SETTINGS_PATH`, `DUB_USER_SETTINGS_PATH` and
+`DUB_LOCAL_REPOSITORY_PATH` respectively to the desired directory.
+
+If these variables are not set, behaviour is unchanged.
