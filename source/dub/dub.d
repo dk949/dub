@@ -1368,6 +1368,45 @@ class Dub {
 		else version(Posix)
 			return m_dirs.userSettings;
 	}
+
+	unittest {
+		immutable oldSystemSettingsPath = environment.get("DUB_SYSTEM_SETTINGS_PATH");
+		immutable oldUserSettingsPath = environment.get("DUB_USER_SETTINGS_PATH");
+		immutable oldLocalRepositoryPath = environment.get("DUB_LOCAL_REPOSITORY_PATH");
+		void repairenv(string name, string var)
+		{
+			if (var !is null)
+				environment[name] = var;
+			else if (name in environment)
+				environment.remove(name);
+		}
+		scope (exit) {
+			repairenv("DUB_SYSTEM_SETTINGS_PATH", oldSystemSettingsPath);
+			repairenv("DUB_USER_SETTINGS_PATH", oldUserSettingsPath);
+			repairenv("DUB_LOCAL_REPOSITORY_PATH", oldLocalRepositoryPath);
+		}
+
+		// When env variables are set, they are used
+		environment["DUB_SYSTEM_SETTINGS_PATH" ] = "/path/to/system/settings";
+		environment["DUB_USER_SETTINGS_PATH"] = "/path/to/user/settings";
+		environment["DUB_LOCAL_REPOSITORY_PATH"] = "/path/to/local/repository";
+
+		auto dub = new Dub(".", null, SkipPackageSuppliers.configured);
+		assert(dub.getSystemSettingsPath() ==  NativePath("/path/to/system/settings"));
+		assert(dub.getUserSettingsPath() == NativePath("/path/to/user/settings"));
+		assert(dub.getLocalRepositoryPath() == NativePath("/path/to/local/repository"));
+
+		// When not set, a default is chosen
+		environment.remove("DUB_SYSTEM_SETTINGS_PATH" );
+		environment.remove("DUB_USER_SETTINGS_PATH");
+		environment.remove("DUB_LOCAL_REPOSITORY_PATH");
+
+		dub = new Dub(".", null, SkipPackageSuppliers.configured);
+		assert(dub.getSystemSettingsPath() !=  NativePath(null));
+		assert(dub.getUserSettingsPath() != NativePath(null));
+		assert(dub.getLocalRepositoryPath() != NativePath(null));
+	}
+
 	private void determineDefaultCompiler()
 	{
 		import std.file : thisExePath;
